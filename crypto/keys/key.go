@@ -9,6 +9,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"math/big"
+	"os"
+	"strconv"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
@@ -185,4 +187,39 @@ func generateOctKey(size int) (interface{}, error) {
 		result[i] = chars[num.Int64()]
 	}
 	return result, nil
+}
+
+func init() {
+	kty := os.Getenv("STEP_KEY_TYPE")
+	if kty != "" {
+		DefaultKeyType = kty
+	}
+
+	size := os.Getenv("STEP_KEY_SIZE")
+	if size != "" {
+		var err error
+		DefaultKeySize, err = strconv.Atoi(size)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	crv := os.Getenv("STEP_KEY_CURVE")
+	if crv != "" {
+		DefaultKeyCurve = crv
+	}
+
+	signAlgo := os.Getenv("STEP_KEY_SIGN_ALGO")
+	if signAlgo != "" {
+		algo := x509.UnknownSignatureAlgorithm
+		for {
+			algo++
+			if algo.String() == signAlgo {
+				DefaultSignatureAlgorithm = algo
+				break
+			} else if algo.String() == strconv.Itoa(int(algo)) {
+				panic(errors.New("Unable to locate key signing algorithm"))
+			}
+		}
+	}
 }
